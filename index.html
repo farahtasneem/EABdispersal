@@ -127,7 +127,27 @@
   controlLayers.addOverlay(counties, 'Ontario Counties');
   });  
 
-
+  //This assigns the watermains geojson layer as a variable
+  var watermains;
+  //This loads the watermains geoJSON file using jQuery from github's repository
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Watermains_2.json',
+	function(json) {
+		watermains = L.geoJson(json, {
+		//This describes the style of the watermains
+			style:{
+				"color": "#5121ff",
+				"weight": 1.5,
+				"opacity": 1
+			},
+			//This creates a pop-up to display the watermains information
+			onEachFeature:  function(feature, layer) {
+				layer.bindPopup(feature.properties.description);
+			}
+			//The .addTo method adds the watermains to the map
+			}).addTo(mymap);
+			//This adds the Ontario population centres feature to the map as an overlay
+		controlLayers.addOverlay(watermains, 'Markham Watermains');
+	});  
  
   //This assigns the Ontario population centres geojson layer as a variable
   var Ont_pop_centres;
