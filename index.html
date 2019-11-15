@@ -129,7 +129,7 @@
     
   var watermains;
   //This loads the watermains geoJSON file using jQuery from github's repository
-  $.getJSON('https://github.com/farahtasneem/EABdispersal/blob/master/Watermains_2.json',
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Watermains.geojson',
 	function(json) {
 		watermains = L.geoJson(json, {
 		//This describes the style of the watermains
