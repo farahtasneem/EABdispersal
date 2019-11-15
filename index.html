@@ -130,7 +130,7 @@
   //This assigns the watermains geojson layer as a variable
   var watermains;
   //This loads the watermains geoJSON file using jQuery from github's repository
-  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Watermains_2.json',
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Watermains.geojson',
 	function(json) {
 		watermains = L.geoJson(json, {
 		//This describes the style of the watermains
@@ -197,7 +197,7 @@
   }).addTo(mymap);
   
   //This adds the EAB points layer to the map as an overlay
-  controlLayers.addOverlay(EAB_points, 'EAB Sightings');
+  controlLayers.addOverlay(EAB_points_properties, 'EAB Sightings');
   }); 
 
 
