@@ -1,0 +1,271 @@
+
+<!--The doctype informs the user of the version of HTML-->
+<!DOCTYPE html>
+<!--The html tag defines the document as a web page-->
+<html lang="en">
+<!--The head contains information about the webpage such as title, author, style, and meta tags-->
+<head>
+  <!--This meta tag specifies the website will be written with the 8-bit character set-->
+  <meta charset="utf-8">
+  
+  <!--Links to Leaflet's Cascading Style Sheet (CSS) document-->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" />
+
+  <!-- Links to mapbox's API -->
+  <link href='https://api.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+
+    <style>
+      /*Describes the style for the html and body */
+      html, body {height: 100%; margin: 0; padding: 0}
+      /*Describes the style for the map */
+      #mapid {
+  	   position: absolute;
+  	   height: 100%;
+  	   width: 100%
+      }
+      /*Describes the style for the map title */
+      #map-title { position: relative; 
+				   margin-top: 10px; 
+				   margin-left: 50px; 
+				   float: left; 
+				   background: white; 
+				   padding: 6px 8px; 
+				   font-family: Helvetica; 
+				   font-weight: bold; 
+				   font-size: 24px; 
+				   border: 2px solid rgba(0,0,0,0.2);
+				   z-index: 800; }
+				   
+				   
+	  #eab-densities {
+			position: absolute;
+			bottom: 278px;
+			right: 9px;
+			z-index: 1000;
+			font-family: Helvetica;
+			font-size: 23px;
+			padding: 7px;
+			background: white;
+			border: 2px solid rgba(0,0,0,0.2)
+		}
+				   
+	  .legend {
+		line-height: 30px;
+		color: #555;
+		background: white;
+		padding: 10px;
+		font-family: Helvetica;
+		font-weight: bold;
+		font-size: 23px;
+		margin-bottom: 50%;
+		
+      }
+	  
+	  .legend i {
+		width: 30px;
+		height: 30px;
+		float: left;
+		margin-right: 10px;
+		opacity: 0.7;
+	  }
+	  
+
+	  
+    </style>
+
+</head>
+
+<body>
+
+  <!-- Main title describes the map which displays the proximities of the invasive species "Emerald Ash Borer(EAB)" beetle to population centres in Southern Ontario"-->
+  <div id="map-title"> EAB Densities across Southern Ontario (2002-2014) </div>
+  <div id="mapid"></div>
+  
+  <button id="eab-densities"> EAB Densities </button>
+
+  <!--Links to Leaflet's javascript API-->
+  <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"></script>
+
+  <!-- Links to jQuery Toolkit in order to import json/geojson files from a repository-->
+  <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+
+  <!-- Links to turf's js module to perform spatial analysis-->
+  <script src="https://unpkg.com/@turf/turf@5.1.6/turf.min.js"></script>
+
+  <!-- Links to mapbox's javascript file-->
+  <script src='https://api.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+
+  <script>
+
+/////////////////////Section 1: Adding the map layer///////////////////////////////
+
+  //Instantiate the Leaflet map object using the ID of the <div> element. SetView specifies the lat,long and zoom level
+  var mymap = L.map('mapid').setView([43.9200, -80.0943], 7); 
+
+  //Creates the layercontrol variable and adds it to the map. This can be used to toggle multiple layers
+  var controlLayers = L.control.layers().addTo(mymap);
+
+  //Adds a basemap tile layer from https://leaflet-extras.github.io/leaflet-providers/preview/ and uses addTo command to add it to the map
+  var basemap = L.tileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  
+  //The .addTo method adds the basemap to the map
+  }).addTo(mymap);
+
+
+
+/////////////////////Section 2: Adding the json/geojson layers///////////////////////////////
+
+
+  
+  //This function assigns colours to each EAB density interval
+  function countyColor(d) {
+		return d > 400 ? '#800026' :
+           d > 100  ? '#BD0026' :
+           d > 70  ? '#E31A1C' :
+           d > 12  ? '#FC4E2A' :
+           d > 8   ? '#FD8D3C' :
+           d > 4   ? '#FEB24C' :
+           d > 1   ? '#FED976' :
+                      '#FFEDA0';
+  }
+  
+  //This function applies the colour scheme to the counties according to the density of EAB points 
+  
+  function countyStyle(feature) {
+	return {
+		weight: 1, 
+		fillOpacity: 0.6,
+		color: 'black',
+		fillColor: countyColor(feature.properties.EAB_COUNT)
+	}
+  };
+  
+   // This adds an interaction for highlighting the counties when they are hovered over. This is defining an event listener for the mouseover event
+  
+  
+  function highlightFeature(e) { //The e is short for an event object which will be passed to event handlers 
+	var layer = e.target;
+	
+	layer.setStyle({
+		weight: 4, 
+		color: '#3ae7f0',
+		dashArray: '',
+		fillOpacity: 0.7
+	});
+
+  };
+  
+  
+  //This resets the highlighted county for the mouseout event. 
+  function resetHighlight(e) {
+	//Indicate the proposed name of the geojson file which in this case is counties
+	counties.resetStyle(e.target);
+  };
+  
+  
+  
+  //This assigns the counties geoJSON layer as a variable and applies the EAB density colouring style
+  var counties;
+
+  //This loads the Ontario counties json file using jQuery from github's repository
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Ont_counties_NAMES_WGS.geojson', 
+  function(json) {
+  counties= L.geoJson(json, {
+	style: countyStyle,
+	onEachFeature: function(feature, layer) {
+	  layer.bindPopup( "<strong>" + feature.properties.NAME + "</strong></br>" + " had " + feature.properties.EAB_COUNT + "  EAB sightings" ), 
+	  layer.on({
+		mouseover: highlightFeature,
+		mouseout: resetHighlight		
+	  })
+	}
+    //The .addTo method adds the counties feature to the map
+  }).addTo(mymap);
+  
+  controlLayers.addOverlay(counties, 'Ontario Counties')
+  });
+  
+  
+  //Creating a legend for the EAB densities in counties 
+  
+  var legend = L.control({position: 'bottomright'});
+
+  legend.onAdd = function(map) {
+	// This creates an HTML element with the tagname div and classname info legend
+	var div = L.DomUtil.create('div', 'info legend'),
+		grades = [0, 1, 4, 8, 12, 70, 100, 400]
+
+		//Loops through the density intervals and generates a label with a coloured square for each interval
+		for (var i = 0; i < grades.length; i++) {
+			'EAB Sightings'
+			// The innerHTML property sets the HTML or XML markup contained in the element
+			div.innerHTML +=
+				'<i style="background:' + countyColor(grades[i] + 1) + '"></i>' + 
+											// &ndash; means a dash (-)
+				grades[i] + (grades[i+1] ? ' &ndash; ' + grades[i+1] + '<br>': '+');
+				
+		}
+		return div;
+	};
+	
+	legend.addTo(mymap);
+				
+  
+
+  
+    //This assigns the Ontario population centres geojson layer as a variable
+  var Ont_pop_centres;
+  //This loads the Ontario population centres geoJSON file using jQuery from github's repository
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/Ont_pop_centresWGS.geojson',  
+  function(json) {
+  Ont_pop_centres= L.geoJson(json, {
+  //This describes the style of the Ontario population centres polygons
+  style:{
+    "color": "#5121ff",
+    "weight": 1.5,
+    "fillOpacity": 0.8}
+  //The .addTo method adds the Ontario population centres feature to the map
+  }).addTo(mymap);
+  //This adds the Ontario population centres feature to the map as an overlay
+  controlLayers.addOverlay(Ont_pop_centres, 'Ontario Population Centres');
+  }); 
+  
+
+
+  //This assigns the EAB points json layer as a variable
+  var EAB_points;
+   //This loads the EAB points file using jQuery from github's repository
+  $.getJSON('https://raw.githubusercontent.com/farahtasneem/EABdispersal/master/EAB_pres_0214_featuresWGS.json', 
+  function(json) {
+
+  //This converts the default blue teardrop icon for the EAB points into the EAB insect imported from a website as a png image and adjusts its size and positioning
+  var eabIcon = L.icon({
+    iconUrl: 'https://static1.squarespace.com/static/530657fae4b0b4d1ce2d8cb3/t/5ab9439870a6ad81601fd888/1522090906372/EAB+bug.png',
+    iconSize: [15, 18],
+    iconAnchor: [16, 37],
+    popupAnchor: [0, -28]
+  });
+
+  //This variable uses the pointToLayer and onEachFeature to convert the EAB points to a layer with the customized icon and attach a pop-up to display the properties of each point
+  var EAB_points_properties= L.geoJson(json, {
+  pointToLayer: function (feature, latlng) {
+      return L.marker(latlng, {icon: eabIcon});
+  },
+  onEachFeature:  function(feature, layer) {
+      layer.bindPopup(feature.properties.description);
+  }
+  //This adds the marker and popups to the map
+  }).addTo(mymap);
+  
+  //This adds the EAB points layer to the map as an overlay
+  controlLayers.addOverlay(EAB_points_properties, 'EAB Sightings');
+  });
+  
+  EAB_points_properties.bringToFront()
+
+//These indicate the end tags of script, body and html
+</script>
+</body>
+</html>
